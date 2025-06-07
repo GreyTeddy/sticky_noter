@@ -1,4 +1,4 @@
-window.createStickyNote = function (existingNote = '', id = null) {
+window.createStickyNote = function (existingNote = '', id = null, location = { top: "10px", left: "50%" }) {
   const stickyNote = document.createElement('div');
   stickyNote.className = 'sticky-note';
   stickyNote.dataset.id = id ? id : Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -9,10 +9,10 @@ window.createStickyNote = function (existingNote = '', id = null) {
     existingNote = date;
     chrome.storage.local.get('stickyNotes', function (result) {
       if (result.stickyNotes && result.stickyNotes.length > 0) {
-        chrome.storage.local.set({ stickyNotes: [...result.stickyNotes, { id: stickyNote.dataset.id, note: existingNote }] });
+        chrome.storage.local.set({ stickyNotes: [...result.stickyNotes, { id: stickyNote.dataset.id, note: existingNote, location: { top: stickyNote.offsetTop, left: stickyNote.offsetLeft } } ] });
       }
       else {
-        chrome.storage.local.set({ stickyNotes: [{ id: stickyNote.dataset.id, note: existingNote }] });
+        chrome.storage.local.set({ stickyNotes: [{ id: stickyNote.dataset.id, note: existingNote, location: { top: stickyNote.offsetTop, left: stickyNote.offsetLeft } } ] });
       }
     });
   }
@@ -20,8 +20,8 @@ window.createStickyNote = function (existingNote = '', id = null) {
     <style>
       .sticky-note {
         position: fixed;
-        top: 10px;
-        left: 50%;
+        top: ${location.top};
+        left: ${location.left};
         transform: translateX(-50%);
         text-align: center;
         margin:0;
@@ -85,6 +85,15 @@ window.createStickyNote = function (existingNote = '', id = null) {
       const top = initialTop + e.clientY - startTop;
       stickyNote.style.left = `${left}px`;
       stickyNote.style.top = `${top}px`;
+      chrome.storage.local.get('stickyNotes', function (result) {
+        if (result.stickyNotes && result.stickyNotes.length > 0) {
+          const index = result.stickyNotes.findIndex(note => note.id === stickyNote.dataset.id);
+          if (index > -1) {
+            result.stickyNotes[index].location = { top: stickyNote.offsetTop + 'px', left: stickyNote.offsetLeft + 'px' };
+            chrome.storage.local.set({ stickyNotes: result.stickyNotes });
+          }
+        }
+      });
     }
   });
   document.addEventListener('mouseup', () => {
@@ -124,7 +133,7 @@ function runOnLoad() {
   chrome.storage.local.get('stickyNotes', function (result) {
     if (result.stickyNotes && result.stickyNotes.length > 0) {
       result.stickyNotes.forEach(note => {
-        window.createStickyNote(note.note, note.id);
+        window.createStickyNote(note.note, note.id, note.location);
       });
     }
   });
