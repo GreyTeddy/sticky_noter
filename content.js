@@ -1,4 +1,7 @@
-window.createStickyNote = function (existingNote = '', id = null, location = { top: "10px", left: "50%" }) {
+window.createStickyNote = function (existingNote = '', id = null, location = { top: "10px", left: "50%" },url = null) {
+  if (!url) {
+    url = window.location.href.replace(/\#.*$/, '');
+  }
   const stickyNote = document.createElement('div');
   stickyNote.className = 'sticky-note';
   stickyNote.dataset.id = id ? id : Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -9,10 +12,10 @@ window.createStickyNote = function (existingNote = '', id = null, location = { t
     existingNote = date;
     chrome.storage.local.get('stickyNotes', function (result) {
       if (result.stickyNotes && result.stickyNotes.length > 0) {
-        chrome.storage.local.set({ stickyNotes: [...result.stickyNotes, { id: stickyNote.dataset.id, note: existingNote, location: { top: stickyNote.offsetTop, left: stickyNote.offsetLeft } } ] });
+        chrome.storage.local.set({ stickyNotes: [...result.stickyNotes, { id: stickyNote.dataset.id, note: existingNote, location, url } ] });
       }
       else {
-        chrome.storage.local.set({ stickyNotes: [{ id: stickyNote.dataset.id, note: existingNote, location: { top: stickyNote.offsetTop, left: stickyNote.offsetLeft } } ] });
+        chrome.storage.local.set({ stickyNotes: [{ id: stickyNote.dataset.id, note: existingNote, location, url } ] });
       }
     });
   }
@@ -22,6 +25,8 @@ window.createStickyNote = function (existingNote = '', id = null, location = { t
         position: fixed;
         top: ${location.top};
         left: ${location.left};
+        max-top: 100vh;
+        max-left: 100vw;
         transform: translateX(-50%);
         text-align: center;
         margin:0;
@@ -132,8 +137,9 @@ window.removeStickyNote = function (event) {
 function runOnLoad() {
   chrome.storage.local.get('stickyNotes', function (result) {
     if (result.stickyNotes && result.stickyNotes.length > 0) {
-      result.stickyNotes.forEach(note => {
-        window.createStickyNote(note.note, note.id, note.location);
+      const url = window.location.href.replace(/\#.*$/, '');
+      result.stickyNotes.filter(note => note.url === url).forEach(note => {
+        window.createStickyNote(note.note, note.id, note.location, note.url);
       });
     }
   });
