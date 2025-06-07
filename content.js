@@ -1,13 +1,20 @@
-window.createStickyNote = function (existingNote = '') {
+window.createStickyNote = function (existingNote = '', id = null) {
   const stickyNote = document.createElement('div');
   stickyNote.className = 'sticky-note';
-  const id = Date.now().toString(36) + Math.random().toString(36).substring(2);
-  stickyNote.dataset.id = id;
+  stickyNote.dataset.id = id ? id : Date.now().toString(36) + Math.random().toString(36).substring(2);
   document.body.appendChild(stickyNote);
   const d = new Date();
   const date = `${d.toLocaleString('default', { month: 'long' })} ${d.getDate()}, ${d.getFullYear()} ${d.toLocaleTimeString()}`;
   if (existingNote.length == 0) {
     existingNote = date;
+    chrome.storage.local.get('stickyNotes', function (result) {
+      if (result.stickyNotes && result.stickyNotes.length > 0) {
+        chrome.storage.local.set({ stickyNotes: [...result.stickyNotes, { id: stickyNote.dataset.id, note: existingNote }] });
+      }
+      else {
+        chrome.storage.local.set({ stickyNotes: [{ id: stickyNote.dataset.id, note: existingNote }] });
+      }
+    });
   }
   stickyNote.innerHTML = `
     <style>
@@ -56,7 +63,7 @@ window.createStickyNote = function (existingNote = '') {
     <div class="sticky-note__handle"></div>
     <button class="sticky-note__close">x</button>
     <div class="sticky-content">
-      <textarea data-id="${id}">${existingNote}</textarea>
+      <textarea>${existingNote}</textarea>
     </div>
   `;
   const button = stickyNote.querySelector('.sticky-note__close');
@@ -85,22 +92,15 @@ window.createStickyNote = function (existingNote = '') {
   });
   textArea.addEventListener('input', () => {
     chrome.storage.local.get('stickyNotes', function (result) {
-      const existingNote = result.stickyNotes && result.stickyNotes.find(note => note.id === id);
-      if (existingNote) {
-        existingNote.note = textArea.value;
-        chrome.storage.local.set({ stickyNotes: result.stickyNotes });
-      }
-      else if (textArea.value.length > 0) {
-        if (result.stickyNotes && result.stickyNotes.length > 0) {
-          chrome.storage.local.set({ stickyNotes: [...result.stickyNotes, { id: id, note: textArea.value }] });
-        }
-        else {
-          chrome.storage.local.set({ stickyNotes: [{ id: id, note: textArea.value }] });
+      if (result.stickyNotes && result.stickyNotes.length > 0) {
+        const index = result.stickyNotes.findIndex(note => note.id === stickyNote.dataset.id);
+        if (index > -1) {
+          result.stickyNotes[index].note = textArea.value;
+          chrome.storage.local.set({ stickyNotes: result.stickyNotes });
         }
       }
     });
   });
-  return stickyNote
 }
 
 window.removeStickyNote = function (event) {
@@ -124,20 +124,7 @@ function runOnLoad() {
   chrome.storage.local.get('stickyNotes', function (result) {
     if (result.stickyNotes && result.stickyNotes.length > 0) {
       result.stickyNotes.forEach(note => {
-        const stickyNote = window.createStickyNote(note.note);
-        stickyNote.dataset.id = note.id;
-        const textArea = stickyNote.querySelector('textarea');
-        const id = note.id;
-        textArea.addEventListener('input', () => {
-          if (textArea.value.length > 0) {
-            if (result.stickyNotes && result.stickyNotes.length > 0) {
-              chrome.storage.local.set({ stickyNotes: [...result.stickyNotes, { id: id, note: textArea.value }] });
-            }
-            else {
-              chrome.storage.local.set({ stickyNotes: [{ id: id, note: textArea.value }] });
-            }
-          }
-        });
+        window.createStickyNote(note.note, note.id);
       });
     }
   });
