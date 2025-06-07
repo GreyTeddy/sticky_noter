@@ -7,8 +7,10 @@ window.createStickyNote = function (existingNote = '', id = null, location = { t
   stickyNote.dataset.id = id ? id : Date.now().toString(36) + Math.random().toString(36).substring(2);
   document.body.appendChild(stickyNote);
   const d = new Date();
+  let focusOnNote = false;
   const date = `${d.toLocaleString('default', { month: 'long' })} ${d.getDate()}, ${d.getFullYear()} ${d.toLocaleTimeString()}`;
   if (existingNote.length == 0) {
+    focusOnNote = true;
     existingNote = date;
     chrome.storage.local.get('stickyNotes', function (result) {
       if (result.stickyNotes && result.stickyNotes.length > 0) {
@@ -68,12 +70,16 @@ window.createStickyNote = function (existingNote = '', id = null, location = { t
     <div class="sticky-note__handle"></div>
     <button class="sticky-note__close">x</button>
     <div class="sticky-content">
-      <textarea>${existingNote}</textarea>
+      <textarea id="${stickyNote.dataset.id}">${existingNote}</textarea>
     </div>
   `;
   const button = stickyNote.querySelector('.sticky-note__close');
   const handle = stickyNote.querySelector('.sticky-note__handle');
   const textArea = stickyNote.querySelector('textarea');
+  if (focusOnNote) {
+    textArea.focus();
+    textArea.setSelectionRange(0, textArea.value.length);
+  }
   button.addEventListener('click', window.removeStickyNote);
   let handleMouseDown = false;
   let startLeft = 0, startTop = 0, initialLeft = 0, initialTop = 0;

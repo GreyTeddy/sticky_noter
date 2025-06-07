@@ -10,3 +10,19 @@ chrome.action.onClicked.addListener((tab) => {
     }
   });
 });
+
+// Listen for shortcut
+chrome.commands.onCommand.addListener((command) => {
+  if (command === 'create-sticky-note') {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        func: () => {
+          if (window.createStickyNote) {
+            window.createStickyNote();
+          }
+        }
+      });
+    });
+  }
+});
