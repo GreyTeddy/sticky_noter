@@ -3,7 +3,7 @@
   "name": "Sticky Noter",
   "version": "1.0",
   "description": "Add sticky notes to any webpage",
-  "permissions": ["activeTab", "scripting"],
+  "permissions": ["activeTab", "scripting","storage"],
   "background": {
     "service_worker": "background.js"
   },
