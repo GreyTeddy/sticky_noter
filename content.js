@@ -38,6 +38,8 @@ window.createStickyNote = function (existingNote = '', id = null, location = { t
       .sticky-note textarea {
         background-color: rgba(255, 255, 0, 0.77);
         color: black;
+        width: 200px;
+        height: 100px;
       }
       .sticky-note__handle {
         cursor: move;
