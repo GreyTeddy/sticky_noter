@@ -15,7 +15,6 @@ window.createStickyNote = function (note) {
     }
     focusOnNote = true;
     chrome.storage.local.get('stickyNotes', function (result) {
-      console.log("added note", note)
       if (!result.stickyNotes || result.stickyNotes.length == 0) { result.stickyNotes = [] }
       result.stickyNotes.push(note);
       chrome.storage.local.set({ stickyNotes: result.stickyNotes });
@@ -153,9 +152,7 @@ window.createStickyNote = function (note) {
           }
           stickyNote.style.top = result.stickyNotes[index].top;
           stickyNote.style.left = result.stickyNotes[index].left;
-          console.log(result.stickyNotes[index].top, result.stickyNotes[index].left)
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
-          console.log("pinned note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
@@ -169,7 +166,6 @@ window.createStickyNote = function (note) {
         if (index > -1) {
           result.stickyNotes[index].fontSize = textArea.style.fontSize;
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
-          console.log("made note smaller", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
@@ -184,7 +180,6 @@ window.createStickyNote = function (note) {
         if (index > -1) {
           result.stickyNotes[index].fontSize = textArea.style.fontSize;
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
-          console.log("made note bigger", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
@@ -210,7 +205,6 @@ window.createStickyNote = function (note) {
         stickyNote.style.left = `${left}%`;
         stickyNote.style.top = `${top}%`;
       }
-      console.log(stickyNote.style.left, stickyNote.style.top, stickyNote.classList.contains('pinned'));
       chrome.storage.local.get('stickyNotes', function (result) {
         if (result.stickyNotes && result.stickyNotes.length > 0) {
           const index = result.stickyNotes.findIndex(note => note.id === stickyNote.dataset.id);
@@ -218,7 +212,6 @@ window.createStickyNote = function (note) {
             result.stickyNotes[index].top = stickyNote.style.top;
             result.stickyNotes[index].left = stickyNote.style.left;
             chrome.storage.local.set({ stickyNotes: result.stickyNotes });
-            console.log("moved note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
           }
         }
       });
@@ -234,7 +227,6 @@ window.createStickyNote = function (note) {
         if (index > -1) {
           result.stickyNotes[index].note = textArea.value;
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
-          console.log("updated note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
@@ -253,7 +245,6 @@ window.createStickyNote = function (note) {
           result.stickyNotes[index].width = textArea.style.width;
           result.stickyNotes[index].height = textArea.style.height;
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
-          console.log("resized note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
@@ -279,7 +270,6 @@ window.removeStickyNote = function (event) {
         if (index > -1) {
           result.stickyNotes.splice(index, 1);
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
-          console.log("removed note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
@@ -291,7 +281,6 @@ function runOnLoad() {
     if (result.stickyNotes && result.stickyNotes.length > 0) {
       const url = window.location.href.replace(/\#.*$/, '');
       result.stickyNotes.filter(note => note.url === url).forEach(note => window.createStickyNote(note));
-      console.log("runOnLoad", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
     }
   });
 }
