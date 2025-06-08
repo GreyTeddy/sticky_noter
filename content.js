@@ -10,7 +10,8 @@ window.createStickyNote = function (note) {
       url: window.location.href.replace(/\#.*$/, ''), // not storing # in url
       fontSize: "1em",
       width: "200px",
-      height: "100px"
+      height: "100px",
+      pinnedAtSpecificPosition: false
     }
     focusOnNote = true;
     chrome.storage.local.get('stickyNotes', function (result) {
@@ -80,11 +81,35 @@ window.createStickyNote = function (note) {
         margin:0;
         padding:0;
       }
+      .sticky-note__pin {
+        position: absolute;
+        top: -12px;
+        right: 40px;
+        background-color: transparent;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        font-size: 0.8em;
+        color: black;
+        margin:0;
+        padding:0;
+        filter: grayscale(100%);
+      }
+      .sticky-note.pinned {
+        position: absolute;
+      }
+      .sticky-note__pin:hover {
+        filter: grayscale(0%);
+      }
+      .sticky-note.pinned .sticky-note__pin {
+        filter: grayscale(0%);
+      }
     </style>
     <div class="sticky-note__handle"></div>
     <button class="sticky-note__close">x</button>
     <button class="sticky-note__smaller_text">-</button>
     <button class="sticky-note__bigger_text">+</button>
+    <button class="sticky-note__pin">📍</button>
     <div class="sticky-content">
       <textarea id="${note.id}">${note.note}</textarea>
     </div>
@@ -93,7 +118,11 @@ window.createStickyNote = function (note) {
   const handle = stickyNote.querySelector('.sticky-note__handle');
   const smallerTextButton = stickyNote.querySelector('.sticky-note__smaller_text');
   const biggerTextButton = stickyNote.querySelector('.sticky-note__bigger_text');
+  const pinButton = stickyNote.querySelector('.sticky-note__pin');
   const textArea = stickyNote.querySelector('textarea');
+  if (note.pinnedAtSpecificPosition) {
+    stickyNote.classList.add('pinned');
+  }
   stickyNote.dataset.id = note.id;
   stickyNote.style.top = note.top;
   stickyNote.style.left = note.left;
@@ -104,6 +133,33 @@ window.createStickyNote = function (note) {
 
   // event listeners
   button.addEventListener('click', window.removeStickyNote);
+
+  pinButton.addEventListener('click', () => {
+    stickyNote.classList.toggle('pinned');
+    chrome.storage.local.get('stickyNotes', function (result) {
+      if (result.stickyNotes && result.stickyNotes.length > 0) {
+        const index = result.stickyNotes.findIndex(note => note.id === stickyNote.dataset.id);
+        stickyNote.style.position = stickyNote.classList.contains('pinned') ? 'absolute' : 'fixed';
+        if (index > -1) {
+          result.stickyNotes[index].pinnedAtSpecificPosition = stickyNote.classList.contains('pinned');
+          const rect = stickyNote.getBoundingClientRect();
+          if (result.stickyNotes[index].pinnedAtSpecificPosition) {
+            result.stickyNotes[index].top = rect.top + window.scrollY * 2 + 'px';
+            result.stickyNotes[index].left = rect.left + window.scrollX * 2 + 'px';
+          } else {
+            // if the sticky note is close to being outside of the page when unpinned, bring it back inside
+            result.stickyNotes[index].top = Math.min(((rect.top - window.scrollY) / window.innerHeight * 100), 85) + '%';
+            result.stickyNotes[index].left = Math.min(((rect.left - window.scrollX) / window.innerWidth * 100), 85) + '%';
+          }
+          stickyNote.style.top = result.stickyNotes[index].top;
+          stickyNote.style.left = result.stickyNotes[index].left;
+          console.log(result.stickyNotes[index].top, result.stickyNotes[index].left)
+          chrome.storage.local.set({ stickyNotes: result.stickyNotes });
+          console.log("pinned note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
+        }
+      }
+    });
+  });
 
   smallerTextButton.addEventListener('click', () => {
     textArea.style.fontSize = Number(textArea.style.fontSize.replace('em', '')) - 0.1 + 'em';
@@ -145,18 +201,16 @@ window.createStickyNote = function (note) {
   });
   document.addEventListener('mousemove', (e) => {
     if (handleMouseDown) {
-      // set left and top to percentage of window size
-      if (e.clientY - startTop + initialTop < 10
-        || e.clientY - startTop + initialTop > window.innerHeight - 10
-        || e.clientX - startLeft + initialLeft < 0
-        || e.clientX - startLeft + initialLeft > window.innerWidth
-      ) {
-        return
+      if (stickyNote.classList.contains('pinned')) {
+        stickyNote.style.left = `${e.clientX - startLeft + initialLeft}px`;
+        stickyNote.style.top = `${e.clientY - startTop + initialTop}px`;
+      } else {
+        const left = (e.clientX - startLeft + initialLeft) / window.innerWidth * 100;
+        const top = (e.clientY - startTop + initialTop) / window.innerHeight * 100;
+        stickyNote.style.left = `${left}%`;
+        stickyNote.style.top = `${top}%`;
       }
-      const left = (e.clientX - startLeft + initialLeft) / window.innerWidth * 100;
-      const top = (e.clientY - startTop + initialTop) / window.innerHeight * 100;
-      stickyNote.style.left = `${left}%`;
-      stickyNote.style.top = `${top}%`;
+      console.log(stickyNote.style.left, stickyNote.style.top, stickyNote.classList.contains('pinned'));
       chrome.storage.local.get('stickyNotes', function (result) {
         if (result.stickyNotes && result.stickyNotes.length > 0) {
           const index = result.stickyNotes.findIndex(note => note.id === stickyNote.dataset.id);
