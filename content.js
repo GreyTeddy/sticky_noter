@@ -5,7 +5,7 @@ window.createStickyNote = function (note) {
     note = {
       note: `${d.toLocaleString('default', { month: 'long' })} ${d.getDate()}, ${d.getFullYear()} ${d.toLocaleTimeString()}`,
       id: Date.now().toString(36) + Math.random().toString(36).substring(2),
-      top: "10px",
+      top: "20px",
       left: "10px",
       url: window.location.href.replace(/\#.*$/, ''), // not storing # in url
       fontSize: "1em"
@@ -24,8 +24,6 @@ window.createStickyNote = function (note) {
     <style>
       .sticky-note {
         position: fixed;
-        max-top: 100vh;
-        max-left: 100vw;
         text-align: center;
         margin:0;
         padding:0;
@@ -144,10 +142,18 @@ window.createStickyNote = function (note) {
   });
   document.addEventListener('mousemove', (e) => {
     if (handleMouseDown) {
-      const left = initialLeft + e.clientX - startLeft;
-      const top = initialTop + e.clientY - startTop;
-      stickyNote.style.left = `${left}px`;
-      stickyNote.style.top = `${top}px`;
+      // set left and top to percentage of window size
+      if (e.clientY - startTop + initialTop < 10
+        || e.clientY - startTop + initialTop > window.innerHeight - 10
+        || e.clientX - startLeft + initialLeft < 0
+        || e.clientX - startLeft + initialLeft > window.innerWidth
+      ) {
+        return
+      }
+      const left = (e.clientX - startLeft + initialLeft) / window.innerWidth * 100;
+      const top = (e.clientY - startTop + initialTop) / window.innerHeight * 100;
+      stickyNote.style.left = `${left}%`;
+      stickyNote.style.top = `${top}%`;
       chrome.storage.local.get('stickyNotes', function (result) {
         if (result.stickyNotes && result.stickyNotes.length > 0) {
           const index = result.stickyNotes.findIndex(note => note.id === stickyNote.dataset.id);
@@ -177,7 +183,7 @@ window.createStickyNote = function (note) {
     });
   });
   document.body.appendChild(stickyNote);
-  
+
   // things done after note is loaded
   if (focusOnNote) {
     textArea.focus();
