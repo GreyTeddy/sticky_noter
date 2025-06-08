@@ -4,6 +4,7 @@
   "version": "1.0",
   "description": "Add sticky notes to any webpage",
   "permissions": ["activeTab", "scripting","storage"],
+  "options_page": "options.html",
   "background": {
     "service_worker": "background.js"
   },
