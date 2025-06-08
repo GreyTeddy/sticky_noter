@@ -1,33 +1,31 @@
-window.createStickyNote = function (existingNote = '', id = null, top = "10px", left = "50%", url = null, fontSize = '1em') {
-  if (!url) {
-    url = window.location.href.replace(/\#.*$/, '');
+window.createStickyNote = function (note) {
+  let focusOnNote = false;
+  if (!note) {
+    const d = new Date();
+    note = {
+      note: `${d.toLocaleString('default', { month: 'long' })} ${d.getDate()}, ${d.getFullYear()} ${d.toLocaleTimeString()}`,
+      id: Date.now().toString(36) + Math.random().toString(36).substring(2),
+      top: "10px",
+      left: "10px",
+      url: window.location.href.replace(/\#.*$/, ''), // not storing # in url
+      fontSize: "1em"
+    }
+    focusOnNote = true;
+    chrome.storage.local.get('stickyNotes', function (result) {
+      console.log("added note", note)
+      if (!result.stickyNotes || result.stickyNotes.length == 0) { result.stickyNotes = [] }
+      result.stickyNotes.push(note);
+      chrome.storage.local.set({ stickyNotes: result.stickyNotes });
+    });
   }
   const stickyNote = document.createElement('div');
   stickyNote.className = 'sticky-note';
-  stickyNote.dataset.id = id ? id : Date.now().toString(36) + Math.random().toString(36).substring(2);
-  document.body.appendChild(stickyNote);
-  const d = new Date();
-  let focusOnNote = false;
-  const date = `${d.toLocaleString('default', { month: 'long' })} ${d.getDate()}, ${d.getFullYear()} ${d.toLocaleTimeString()}`;
-  if (existingNote.length == 0) {
-    focusOnNote = true;
-    existingNote = date;
-    chrome.storage.local.get('stickyNotes', function (result) {
-      if (result.stickyNotes && result.stickyNotes.length > 0) {
-        chrome.storage.local.set({ stickyNotes: [...result.stickyNotes, { id: stickyNote.dataset.id, note: existingNote, top, left, url }] });
-      }
-      else {
-        chrome.storage.local.set({ stickyNotes: [{ id: stickyNote.dataset.id, note: existingNote, top, left, url }] });
-      }
-    });
-  }
   stickyNote.innerHTML = `
     <style>
       .sticky-note {
         position: fixed;
         max-top: 100vh;
         max-left: 100vw;
-        transform: translateX(-50%);
         text-align: center;
         margin:0;
         padding:0;
@@ -50,47 +48,39 @@ window.createStickyNote = function (existingNote = '', id = null, top = "10px", 
       }
       .sticky-note__close {
         position: absolute;
-        top: -15px;
-        right: 0;
+        top: -13px;
+        right: 5;
         background-color: transparent;
         border: none;
         outline: none;
         cursor: pointer;
-        font-size: 0.9em;
         color: black;
-      }
-      .sticky-note .sticky-content > span {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        font-size: 0.7em;
-        color: rgba(255, 255, 0, 0.77);
+        margin:0;
+        padding:0;
       }
       .sticky-note__smaller_text {
         position: absolute;
-        top: -15px;
-        left: 20px;
+        top: -13px;
+        right: 20px;
         background-color: transparent;
         border: none;
         outline: none;
         cursor: pointer;
-        font-size: 0.9em;
         color: black;
-        margin: 0;
-        padding: 0;
+        margin:0;
+        padding:0;
       }
       .sticky-note__bigger_text {
         position: absolute;
-        top: -15px;
-        left: 30px;
+        top: -12px;
+        right: 30px;
         background-color: transparent;
         border: none;
         outline: none;
         cursor: pointer;
-        font-size: 0.9em;
         color: black;
-        margin: 0;
-        padding: 0;
+        margin:0;
+        padding:0;
       }
     </style>
     <div class="sticky-note__handle"></div>
@@ -98,25 +88,23 @@ window.createStickyNote = function (existingNote = '', id = null, top = "10px", 
     <button class="sticky-note__smaller_text">-</button>
     <button class="sticky-note__bigger_text">+</button>
     <div class="sticky-content">
-      <textarea id="${stickyNote.dataset.id}" style="font-size: ${fontSize}">${existingNote}</textarea>
+      <textarea id="${note.id}">${note.note}</textarea>
     </div>
   `;
-  stickyNote.style.top = top;
-  stickyNote.style.left = left;
   const button = stickyNote.querySelector('.sticky-note__close');
   const handle = stickyNote.querySelector('.sticky-note__handle');
   const smallerTextButton = stickyNote.querySelector('.sticky-note__smaller_text');
   const biggerTextButton = stickyNote.querySelector('.sticky-note__bigger_text');
-
   const textArea = stickyNote.querySelector('textarea');
-  if (focusOnNote) {
-    textArea.focus();
-    textArea.setSelectionRange(0, textArea.value.length);
-  }
+  stickyNote.dataset.id = note.id;
+  stickyNote.style.top = note.top;
+  stickyNote.style.left = note.left;
+  textArea.style.fontSize = note.fontSize;
+  textArea.style.fontFamily = 'Arial, sans-serif';
+
   button.addEventListener('click', window.removeStickyNote);
 
   smallerTextButton.addEventListener('click', () => {
-    const textArea = stickyNote.querySelector('textarea');
     textArea.style.fontSize = Number(textArea.style.fontSize.replace('em', '')) - 0.1 + 'em';
     chrome.storage.local.get('stickyNotes', function (result) {
       if (result.stickyNotes && result.stickyNotes.length > 0) {
@@ -124,6 +112,7 @@ window.createStickyNote = function (existingNote = '', id = null, top = "10px", 
         if (index > -1) {
           result.stickyNotes[index].fontSize = textArea.style.fontSize;
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
+          console.log("made note smaller", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
@@ -132,13 +121,13 @@ window.createStickyNote = function (existingNote = '', id = null, top = "10px", 
   biggerTextButton.addEventListener('click', () => {
     const textArea = stickyNote.querySelector('textarea');
     textArea.style.fontSize = Number(textArea.style.fontSize.replace('em', '')) + 0.1 + 'em';
-    console.log(textArea.style.fontSize)
     chrome.storage.local.get('stickyNotes', function (result) {
       if (result.stickyNotes && result.stickyNotes.length > 0) {
         const index = result.stickyNotes.findIndex(note => note.id === stickyNote.dataset.id);
         if (index > -1) {
           result.stickyNotes[index].fontSize = textArea.style.fontSize;
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
+          console.log("made note bigger", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
@@ -163,9 +152,10 @@ window.createStickyNote = function (existingNote = '', id = null, top = "10px", 
         if (result.stickyNotes && result.stickyNotes.length > 0) {
           const index = result.stickyNotes.findIndex(note => note.id === stickyNote.dataset.id);
           if (index > -1) {
-            result.stickyNotes[index].top = stickyNote.offsetTop + 'px';
-            result.stickyNotes[index].left = stickyNote.offsetLeft + 'px';
+            result.stickyNotes[index].top = stickyNote.style.top;
+            result.stickyNotes[index].left = stickyNote.style.left;
             chrome.storage.local.set({ stickyNotes: result.stickyNotes });
+            console.log("moved note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
           }
         }
       });
@@ -181,10 +171,18 @@ window.createStickyNote = function (existingNote = '', id = null, top = "10px", 
         if (index > -1) {
           result.stickyNotes[index].note = textArea.value;
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
+          console.log("updated note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
   });
+  document.body.appendChild(stickyNote);
+  
+  // things done after note is loaded
+  if (focusOnNote) {
+    textArea.focus();
+    textArea.setSelectionRange(0, textArea.value.length);
+  }
 }
 
 window.removeStickyNote = function (event) {
@@ -198,6 +196,7 @@ window.removeStickyNote = function (event) {
         if (index > -1) {
           result.stickyNotes.splice(index, 1);
           chrome.storage.local.set({ stickyNotes: result.stickyNotes });
+          console.log("removed note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
         }
       }
     });
@@ -208,9 +207,8 @@ function runOnLoad() {
   chrome.storage.local.get('stickyNotes', function (result) {
     if (result.stickyNotes && result.stickyNotes.length > 0) {
       const url = window.location.href.replace(/\#.*$/, '');
-      result.stickyNotes.filter(note => note.url === url).forEach(note => {
-        window.createStickyNote(note.note, note.id, note.top, note.left, note.url, note.fontSize);
-      });
+      result.stickyNotes.filter(note => note.url === url).forEach(note => window.createStickyNote(note));
+      console.log("runOnLoad", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
     }
   });
 }
