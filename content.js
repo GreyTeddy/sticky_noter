@@ -8,7 +8,9 @@ window.createStickyNote = function (note) {
       top: "20px",
       left: "10px",
       url: window.location.href.replace(/\#.*$/, ''), // not storing # in url
-      fontSize: "1em"
+      fontSize: "1em",
+      width: "200px",
+      height: "100px"
     }
     focusOnNote = true;
     chrome.storage.local.get('stickyNotes', function (result) {
@@ -32,8 +34,6 @@ window.createStickyNote = function (note) {
       .sticky-note textarea {
         background-color: rgba(255, 255, 0, 0.77);
         color: black;
-        width: 200px;
-        height: 100px;
       }
       .sticky-note__handle {
         cursor: move;
@@ -99,7 +99,10 @@ window.createStickyNote = function (note) {
   stickyNote.style.left = note.left;
   textArea.style.fontSize = note.fontSize;
   textArea.style.fontFamily = 'Arial, sans-serif';
+  textArea.style.width = note.width;
+  textArea.style.height = note.height;
 
+  // event listeners
   button.addEventListener('click', window.removeStickyNote);
 
   smallerTextButton.addEventListener('click', () => {
@@ -182,6 +185,25 @@ window.createStickyNote = function (note) {
       }
     });
   });
+  // resize observer, which is applied after the note is rendered
+  const resizeObserver = new ResizeObserver((entries) => {
+    chrome.storage.local.get('stickyNotes', function (result) {
+      if (entries[0].contentRect.width <= 0 || entries[0].contentRect.height <= 0) {
+        // this prevents the observer from running when the note is hidden and readding the node
+        // I do not like the whole observer implementation, but it seems to work so far.
+        return;
+      }
+      if (result.stickyNotes && result.stickyNotes.length > 0) {
+        const index = result.stickyNotes.findIndex(note => note.id === stickyNote.dataset.id);
+        if (index > -1) {
+          result.stickyNotes[index].width = textArea.style.width;
+          result.stickyNotes[index].height = textArea.style.height;
+          chrome.storage.local.set({ stickyNotes: result.stickyNotes });
+          console.log("resized note", result.stickyNotes.filter(e => e.url == window.location.href.replace(/\#.*$/, '')))
+        }
+      }
+    });
+  });
   document.body.appendChild(stickyNote);
 
   // things done after note is loaded
@@ -189,6 +211,7 @@ window.createStickyNote = function (note) {
     textArea.focus();
     textArea.setSelectionRange(0, textArea.value.length);
   }
+  resizeObserver.observe(textArea);
 }
 
 window.removeStickyNote = function (event) {
