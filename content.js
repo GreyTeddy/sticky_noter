@@ -32,7 +32,7 @@ window.createStickyNote = function (note) {
         z-index: 100000;
       }
       .sticky-note textarea {
-        background-color: rgba(255, 255, 0, 0.77);
+        background-color: rgba(245, 223, 112, 0.85);
         color: black;
       }
       .sticky-note__handle {
@@ -42,7 +42,7 @@ window.createStickyNote = function (note) {
         left: 0;
         right: 0;
         height: 10px;
-        background-color: rgba(255, 255, 0, 0.77);
+        background-color: rgba(245, 223, 112, 0.85);
       }
       .sticky-note__close {
         position: absolute;
