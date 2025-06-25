@@ -47,7 +47,7 @@ window.createStickyNote = function (note) {
       .sticky-note__close {
         position: absolute;
         top: -13px;
-        right: 5;
+        right: 5px;
         background-color: transparent;
         border: none;
         outline: none;
